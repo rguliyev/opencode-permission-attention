@@ -1,6 +1,6 @@
 # OpenCode Permission Attention
 
-A laptop-side OpenCode TUI plugin that announces permission requests even when
+OpenCode TUI plugin that announces permission requests even when
 the TUI is focused and appends `🔔` to the requesting session's terminal title
 while a request remains pending.
 
