@@ -20,9 +20,22 @@ const tui: TuiPlugin = async (api) => {
     return typeof sessionID === "string" ? sessionID : undefined
   }
 
+  const rootSessionID = (sessionID: string) => {
+    const seen = new Set<string>()
+    let current = sessionID
+    while (!seen.has(current)) {
+      seen.add(current)
+      const parentID = api.state.session.get(current)?.parentID
+      if (!parentID) break
+      current = parentID
+    }
+    return current
+  }
+
   const setPendingTitle = (sessionID: string) => {
+    const titleSessionID = rootSessionID(sessionID)
     api.renderer.setTerminalTitle(
-      `OC | ${truncateTitle(sessionTitle(sessionID))} 🔔`,
+      `OC | ${truncateTitle(sessionTitle(titleSessionID))} 🔔`,
     )
   }
 
@@ -65,7 +78,12 @@ const tui: TuiPlugin = async (api) => {
 
   const offAsked = api.event.on("permission.asked", (event) => {
     const { id: requestID, sessionID } = event.properties
-    if (sessionID !== currentSessionID()) return
+    const activeSessionID = currentSessionID()
+    if (
+      !activeSessionID ||
+      rootSessionID(sessionID) !== rootSessionID(activeSessionID)
+    )
+      return
     if (pending.has(requestID)) return
 
     pending.set(requestID, sessionID)
@@ -73,7 +91,7 @@ const tui: TuiPlugin = async (api) => {
     titleTimer ??= setInterval(keepPendingTitle, 250)
 
     void api.attention.notify({
-      title: sessionTitle(sessionID),
+      title: sessionTitle(rootSessionID(sessionID)),
       message: "Permission needs input",
       notification: { when: "always" },
       sound: false,
